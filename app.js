@@ -316,20 +316,21 @@ function receivedMessage(event, db) {
         break;
 
       case 'check-in':
-        checkin(senderID, db, function(err, pre, cur){
+        checkin(senderID, db, function(err, pre, curr){
           var text = '';
-          if(cur.status == 1){
-            text = 'On-duty: ' + current.checkin_time.toString();
+          if(curr.status == 1){
+            text = 'On-duty: ' + curr.checkin_time.toString();
           }
           else{
-            var diff = current.checkin_time - previous.checkin_time;
-            text = 'Off-duty:' + current.checkin_time.toString();
+            var diff = curr.checkin_time - pre.checkin_time;
+            text = 'Off-duty:' + curr.checkin_time.toString();
             text += '\nLength:' + diff/1000.0 + ' secs';
           }
-          console.log('Check-in:', err, pre, cur);
+          console.log('Check-in:', err, pre, curr);
           console.log('response text:' + text);
           sendTextMessage(senderID, text);
         });
+        break;
 
       default:
         sendTextMessage(senderID, messageText);
