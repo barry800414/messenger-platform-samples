@@ -104,7 +104,7 @@ app.post('/webhook', function (req, res) {
         if (messagingEvent.optin) {
           receivedAuthentication(messagingEvent);
         } else if (messagingEvent.message) {
-          receivedMessage(messagingEvent);
+          receivedMessage(messagingEvent, req.db);
         } else if (messagingEvent.delivery) {
           receivedDeliveryConfirmation(messagingEvent);
         } else if (messagingEvent.postback) {
@@ -223,7 +223,7 @@ function receivedAuthentication(event) {
  * then we'll simply confirm that we've received the attachment.
  * 
  */
-function receivedMessage(event) {
+function receivedMessage(event, db) {
   var senderID = event.sender.id;
   var recipientID = event.recipient.id;
   var timeOfMessage = event.timestamp;
