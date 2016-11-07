@@ -51,10 +51,18 @@ const SERVER_URL = (process.env.SERVER_URL) ?
   (process.env.SERVER_URL) :
   config.get('serverURL');
 
-if (!(APP_SECRET && VALIDATION_TOKEN && PAGE_ACCESS_TOKEN && SERVER_URL)) {
+const MONGODB_URI = (process.env.MONGODB_URI) ?
+  (process.env.MONGODB_URI) :
+  config.get('mongodbURI');
+
+if (!(APP_SECRET && VALIDATION_TOKEN && PAGE_ACCESS_TOKEN && SERVER_URL && MONGODB_URI)) {
   console.error("Missing config values");
   process.exit(1);
 }
+
+// setting up database connection
+var expressMongoDb = require('express-mongo-db');
+app.use(expressMongoDb(MONGODB_URI);
 
 /*
  * Use your own validation token. Check that the token used in the Webhook 
