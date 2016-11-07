@@ -51,10 +51,18 @@ const SERVER_URL = (process.env.SERVER_URL) ?
   (process.env.SERVER_URL) :
   config.get('serverURL');
 
-if (!(APP_SECRET && VALIDATION_TOKEN && PAGE_ACCESS_TOKEN && SERVER_URL)) {
+const MONGODB_URI = (process.env.MONGODB_URI) ?
+  (process.env.MONGODB_URI) :
+  config.get('mongodbURI');
+
+if (!(APP_SECRET && VALIDATION_TOKEN && PAGE_ACCESS_TOKEN && SERVER_URL && MONGODB_URI)) {
   console.error("Missing config values");
   process.exit(1);
 }
+
+// setting up database connection
+var expressMongoDb = require('express-mongo-db');
+app.use(expressMongoDb(MONGODB_URI));
 
 /*
  * Use your own validation token. Check that the token used in the Webhook 
@@ -307,6 +315,22 @@ function receivedMessage(event) {
         sendAccountLinking(senderID);
         break;
 
+      case 'check-in':
+        checkin(senderID, db, function(err, pre, cur){
+          var text = '';
+          if(cur.status == 1){
+            text = 'On-duty: ' + current.checkin_time.toString();
+          }
+          else{
+            var diff = current.checkin_time - previous.checkin_time;
+            text = 'Off-duty:' + current.checkin_time.toString();
+            text += '\nLength:' + diff/1000.0 + ' secs';
+          }
+          console.log('Check-in:', err, pre, cur);
+          console.log('response text:' + text);
+          sendTextMessage(senderID, text);
+        });
+
       default:
         sendTextMessage(senderID, messageText);
     }
@@ -315,6 +339,33 @@ function receivedMessage(event) {
   }
 }
 
+function checkin(user_id, db, callback){
+  var collection = db.collection('checkin');
+  collection.find({ 
+    user_id: user_id 
+  }).sort({
+    checkin_time:-1
+  }).limit(1).toArray(function(err, record){
+    var new_status;
+    if(record.length == 0){
+      //off-duty state
+      new_status = 1; 
+    }
+    else {
+      //on-duty or off-duty state 
+      new_status = record[0].status == 1 ? 0 : 1;
+    }
+    collection.insert({
+      user_id: user_id,
+      checkin_time: new Date(),
+      status: new_status
+    }, function(err, result){
+      const previous = record.length == 0 ? null : record[0];
+      const current = result.ops[0];
+      callback(err, previous, current);
+    });
+  });
+}
 
 /*
  * Delivery Confirmation Event
