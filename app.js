@@ -64,6 +64,25 @@ if (!(APP_SECRET && VALIDATION_TOKEN && PAGE_ACCESS_TOKEN && SERVER_URL && MONGO
 var expressMongoDb = require('express-mongo-db');
 app.use(expressMongoDb(MONGODB_URI));
 
+// initialize the app, including greeting text and getting started
+function initApp(){
+
+  //initialize getting started setting
+  var msg = {
+    "setting_type":"call_to_actions",
+    "thread_state":"new_thread",
+    "call_to_actions":[
+      {
+        "payload":"init_user"
+      }
+    ]
+  };
+  callThreadSettingAPI(msg);
+
+}
+
+initApp();
+
 /*
  * Use your own validation token. Check that the token used in the Webhook 
  * setup is the same token used here.
@@ -413,9 +432,17 @@ function receivedPostback(event) {
   console.log("Received postback for user %d and page %d with payload '%s' " + 
     "at %d", senderID, recipientID, payload, timeOfPostback);
 
-  // When a postback is called, we'll send a message back to the sender to 
-  // let them know it was successful
-  sendTextMessage(senderID, "Postback called");
+  if(payload == 'init_user'){
+    //do someting
+    sendTextMessage(senderID, "should initialize user");
+  }
+  else{
+    // When a postback is called, we'll send a message back to the sender to 
+    // let them know it was successful
+    sendTextMessage(senderID, "Postback called");  
+  }
+
+  
 }
 
 /*
@@ -877,6 +904,31 @@ function callSendAPI(messageData) {
       console.error("Failed calling Send API", response.statusCode, response.statusMessage, body.error);
     }
   });  
+}
+
+function callThreadSettingAPI(messageData){
+  request({
+    uri: 'https://graph.facebook.com/v2.6/me/thread_settings',
+    qs: { access_token: PAGE_ACCESS_TOKEN },
+    method: 'POST',
+    json: messageData
+
+  }, function (error, response, body) {
+    if (!error && response.statusCode == 200) {
+      var recipientId = body.recipient_id;
+      var messageId = body.message_id;
+
+      if (messageId) {
+        console.log("Successfully sent message with id %s to recipient %s", 
+          messageId, recipientId);
+      } else {
+      console.log("Successfully called Send API for recipient %s", 
+        recipientId);
+      }
+    } else {
+      console.error("Failed calling Send API", response.statusCode, response.statusMessage, body.error);
+    }
+  }); 
 }
 
 // Start server
