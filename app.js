@@ -433,8 +433,13 @@ function receivedPostback(event) {
     "at %d", senderID, recipientID, payload, timeOfPostback);
 
   if(payload == 'init_user'){
-    //do someting
-    sendTextMessage(senderID, "should initialize user");
+    const buttonsTemplate = [{
+      type: "web_url",
+      url: "https://worktime.goodjob.life/",
+      title: "Start to enter"
+    }];
+  
+    sendButtonMessage(senderID, "Please enter your basic information:", buttonsTemplate);
   }
   else{
     // When a postback is called, we'll send a message back to the sender to 
@@ -615,12 +620,28 @@ function sendTextMessage(recipientId, messageText) {
  * Send a button message using the Send API.
  *
  */
-function sendButtonMessage(recipientId) {
+function sendButtonMessage(recipientId, text, buttonsTemplate) {
   var messageData = {
     recipient: {
       id: recipientId
     },
     message: {
+      attachment: {
+        type: "template",
+        payload: {
+          template_type: "button",
+          text: text,
+          buttons: buttonsTemplate
+        }
+      }
+    }
+  };  
+
+  callSendAPI(messageData);
+}
+
+/*
+{
       attachment: {
         type: "template",
         payload: {
@@ -642,10 +663,8 @@ function sendButtonMessage(recipientId) {
         }
       }
     }
-  };  
+*/
 
-  callSendAPI(messageData);
-}
 
 /*
  * Send a Structured Message (Generic Message type) using the Send API.
