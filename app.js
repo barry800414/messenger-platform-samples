@@ -73,7 +73,7 @@ function initApp(){
     "thread_state":"new_thread",
     "call_to_actions":[
       {
-        "payload":"init_user"
+        "payload":"get_started"
       }
     ]
   };
@@ -127,7 +127,7 @@ app.post('/webhook', function (req, res) {
         } else if (messagingEvent.delivery) {
           receivedDeliveryConfirmation(messagingEvent);
         } else if (messagingEvent.postback) {
-          receivedPostback(messagingEvent);
+          receivedPostback(messagingEvent, req.db);
         } else if (messagingEvent.read) {
           receivedMessageRead(messagingEvent);
         } else if (messagingEvent.account_linking) {
@@ -335,24 +335,16 @@ function receivedMessage(event, db) {
         break;
 
       case 'check-in':
-        checkin(senderID, db, function(err, pre, curr){
-          var text = '';
-          if(curr.status == 1){
-            text = 'On-duty: ' + curr.checkin_time.toString();
-          }
-          else{
-            var diff = curr.checkin_time - pre.checkin_time;
-            text = 'Off-duty:' + curr.checkin_time.toString();
-            text += '\nLength:' + diff/1000.0 + ' secs';
-          }
-          console.log('Check-in:', err, pre, curr);
-          console.log('response text:' + text);
-          sendTextMessage(senderID, text);
-        });
+        checkin(senderID, db, checkinCallback);
+        break;
+
+      case 'send-quick':
+        sendCheckinQuickReply(senderID);
         break;
 
       default:
         sendTextMessage(senderID, messageText);
+        break;
     }
   } else if (messageAttachments) {
     sendTextMessage(senderID, "Message with attachment received");
@@ -382,9 +374,22 @@ function checkin(user_id, db, callback){
     }, function(err, result){
       const previous = record.length == 0 ? null : record[0];
       const current = result.ops[0];
-      callback(err, previous, current);
+      callback(err, user_id, previous, current);
     });
   });
+}
+
+function checkinCallback(error, user_id, previous, current){
+  var text = '';
+  if(current.status == 1){
+    text = 'On-duty: ' + current.checkin_time.toString();
+  } 
+  else{
+    var diff = current.checkin_time - previous.checkin_time;
+    text = 'Off-duty:' + current.checkin_time.toString();
+    text += '\nLength:' + diff/1000.0 + ' secs';
+  }
+  sendTextMessage(user_id, text);
 }
 
 /*
@@ -420,7 +425,7 @@ function receivedDeliveryConfirmation(event) {
  * https://developers.facebook.com/docs/messenger-platform/webhook-reference/postback-received
  * 
  */
-function receivedPostback(event) {
+function receivedPostback(event, db) {
   var senderID = event.sender.id;
   var recipientID = event.recipient.id;
   var timeOfPostback = event.timestamp;
@@ -432,14 +437,11 @@ function receivedPostback(event) {
   console.log("Received postback for user %d and page %d with payload '%s' " + 
     "at %d", senderID, recipientID, payload, timeOfPostback);
 
-  if(payload == 'init_user'){
-    const buttonsTemplate = [{
-      type: "web_url",
-      url: "https://worktime.goodjob.life/",
-      title: "Start to enter"
-    }];
-  
-    sendButtonMessage(senderID, "Please enter your basic information:", buttonsTemplate);
+  if(payload == 'get_started'){
+    getStartedCallBack(senderID);
+  }
+  else if(payload == 'check-in'){
+    checkin(senderID, db, checkinCallback);
   }
   else{
     // When a postback is called, we'll send a message back to the sender to 
@@ -449,6 +451,16 @@ function receivedPostback(event) {
 
   
 }
+
+function getStartedCallBack(recipientId){
+  const buttonsTemplate = [{
+      type: "web_url",
+      url: "https://worktime.goodjob.life/",
+      title: "Start to enter"
+    }];
+    sendButtonMessage(recipientId, "Please enter your basic information:", buttonsTemplate);
+}
+
 
 /*
  * Message Read Event
@@ -809,6 +821,26 @@ function sendQuickReply(recipientId) {
           "content_type":"text",
           "title":"Drama",
           "payload":"DEVELOPER_DEFINED_PAYLOAD_FOR_PICKING_DRAMA"
+        }
+      ]
+    }
+  };
+
+  callSendAPI(messageData);
+}
+
+function sendCheckinQuickReply(recipientID){
+  var messageData = {
+    recipient: {
+      id: recipientID
+    },
+    message: {
+      text: "Wanna check-in?",
+      quick_replies: [
+        {
+          "content_type":"text",
+          "title":"check-in",
+          "payload":"check-in"
         }
       ]
     }
