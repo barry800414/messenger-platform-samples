@@ -73,7 +73,7 @@ function initApp(){
     "thread_state":"new_thread",
     "call_to_actions":[
       {
-        "payload":"get_started"
+        "payload": JSON.stringify({action: "get_started"}),
       }
     ]
   };
@@ -272,7 +272,7 @@ function receivedMessage(event, db) {
     console.log("Quick reply for message %s with payload %s",
       messageId, quickReplyPayload);
 
-    if(payload == 'check-in'){
+    if(quickReplyPayload == 'check-in'){
       checkin(senderID, db, checkinCallback);
     } else {
       sendTextMessage(senderID, "Quick reply tapped");  
@@ -386,14 +386,26 @@ function checkin(user_id, db, callback){
 function checkinCallback(error, user_id, previous, current){
   var text = '';
   if(current.status == 1){
-    text = 'On-duty: ' + current.checkin_time.toString();
+    text = '開始上班囉！ 時間：' + current.checkin_time.toString();
   } 
   else{
-    var diff = current.checkin_time - previous.checkin_time;
-    text = 'Off-duty:' + current.checkin_time.toString();
-    text += '\nLength:' + diff/1000.0 + ' secs';
+    var diff = new Date(current.checkin_time - previous.checkin_time);
+    console.log(typeof(current), typeof(previous), typeof(diff));
+    text = '哦耶下班了！時間：' + current.checkin_time.toString();
+    text += '\n\n今天工作時間： ' + diff.getHours() + '小時 ' + diff.getMinutes() + '分';
   }
-  sendTextMessage(user_id, text);
+
+  const buttons = [{    
+      type: "postback",
+      title: "微調時間",
+      payload: JSON.stringify({action: "modify_check-in", "checkin_id": current._id}),
+    }, {
+      type: "postback",
+      title: "取消打卡",
+      payload: JSON.stringify({action: "cancel_check-in", "checkin_id": current._id}),
+    }];
+
+  sendButtonMessage(user_id, text, buttons);
 }
 
 /*
@@ -441,8 +453,16 @@ function receivedPostback(event, db) {
   console.log("Received postback for user %d and page %d with payload '%s' " + 
     "at %d", senderID, recipientID, payload, timeOfPostback);
 
-  if(payload == 'get_started'){
-    getStartedCallBack(senderID);
+  payload = JSON.parse(payload);
+
+  if(payload.action == 'get_started'){
+    sendGetStartedMessage(senderID);
+  }
+  else if(payload.action == 'cancel_check-in'){
+    sendTextMessage(senderID, "收到取消的指令但還沒完成>O<");
+  }
+  else if(payload.action == 'modify_check-in'){
+    sendTextMessage(senderID, "收到微調的指令但還沒完成>O<");
   }
   else{
     // When a postback is called, we'll send a message back to the sender to 
@@ -453,13 +473,19 @@ function receivedPostback(event, db) {
   
 }
 
-function getStartedCallBack(recipientId){
-  const buttonsTemplate = [{
-      type: "web_url",
-      url: "https://worktime.goodjob.life/",
-      title: "Start to enter"
-    }];
-    sendButtonMessage(recipientId, "Please enter your basic information:", buttonsTemplate);
+function sendGetStartedMessage(recipientId){
+  const elements = [{
+    title: "基本資訊",
+    subtitle: "請輸入您的基本資訊",
+    item_url: "https://worktime.goodjob/life/",
+    //image_url: SERVER_URL + "/assets/rift.png",
+    buttons: [{
+        type: "web_url",
+        url: "https://worktime.goodjob/life/",
+        title: "開始輸入",
+    }],
+  }];
+  sendGenericMessage(recipientId, elements);
 }
 
 
@@ -615,7 +641,10 @@ function sendFileMessage(recipientId) {
  * Send a text message using the Send API.
  *
  */
-function sendTextMessage(recipientId, messageText) {
+function sendTextMessage(recipientId, messageText, quickReply) {
+  if(quickReply === undefined){
+    quickReply = true;
+  }
   var messageData = {
     recipient: {
       id: recipientId
@@ -626,6 +655,13 @@ function sendTextMessage(recipientId, messageText) {
     }
   };
 
+  if(quickReply){
+    messageData.message.quick_replies = [{
+      content_type:"text",
+      title:"打卡",
+      payload:"check-in"
+    }];
+  }
   callSendAPI(messageData);
 }
 
@@ -683,7 +719,10 @@ function sendButtonMessage(recipientId, text, buttonsTemplate) {
  * Send a Structured Message (Generic Message type) using the Send API.
  *
  */
-function sendGenericMessage(recipientId) {
+function sendGenericMessage(recipientId, elements, quickReply) {
+  if(quickReply === undefined){
+    quickReply = true;
+  }
   var messageData = {
     recipient: {
       id: recipientId
@@ -693,7 +732,24 @@ function sendGenericMessage(recipientId) {
         type: "template",
         payload: {
           template_type: "generic",
-          elements: [{
+          elements: elements
+        }
+      }
+    }
+  };  
+  
+  if(quickReply){
+    messageData.message.quick_replies = [{
+      content_type:"text",
+      title:"打卡",
+      payload:"check-in"
+    }];
+  }
+  callSendAPI(messageData);
+}
+
+/*
+ [{
             title: "rift",
             subtitle: "Next-generation virtual reality",
             item_url: "https://www.oculus.com/en-us/rift/",               
@@ -722,13 +778,7 @@ function sendGenericMessage(recipientId) {
               payload: "Payload for second bubble",
             }]
           }]
-        }
-      }
-    }
-  };  
-
-  callSendAPI(messageData);
-}
+*/
 
 /*
  * Send a receipt message using the Send API.
@@ -957,6 +1007,7 @@ function callSendAPI(messageData) {
     }
   });  
 }
+
 
 function callThreadSettingAPI(messageData){
   request({
