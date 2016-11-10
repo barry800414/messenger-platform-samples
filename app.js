@@ -272,7 +272,11 @@ function receivedMessage(event, db) {
     console.log("Quick reply for message %s with payload %s",
       messageId, quickReplyPayload);
 
-    sendTextMessage(senderID, "Quick reply tapped");
+    if(payload == 'check-in'){
+      checkin(senderID, db, checkinCallback);
+    } else {
+      sendTextMessage(senderID, "Quick reply tapped");  
+    }
     return;
   }
 
@@ -439,9 +443,6 @@ function receivedPostback(event, db) {
 
   if(payload == 'get_started'){
     getStartedCallBack(senderID);
-  }
-  else if(payload == 'check-in'){
-    checkin(senderID, db, checkinCallback);
   }
   else{
     // When a postback is called, we'll send a message back to the sender to 
@@ -977,6 +978,7 @@ function callThreadSettingAPI(messageData){
         recipientId);
       }
     } else {
+      console.log(error);
       console.error("Failed calling Send API", response.statusCode, response.statusMessage, body.error);
     }
   }); 
