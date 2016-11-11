@@ -480,11 +480,11 @@ function sendGetStartedMessage(recipientId){
   const elements = [{
     title: "基本資訊",
     subtitle: "請輸入您的基本資訊",
-    item_url: "https://worktime.goodjob/life/",
+    item_url: SERVER_URL + "/register.html",
     //image_url: SERVER_URL + "/assets/rift.png",
     buttons: [{
         type: "web_url",
-        url: "https://worktime.goodjob/life/",
+        url: SERVER_URL + "/register.html",
         title: "開始輸入",
     }],
   }];
