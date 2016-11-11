@@ -386,13 +386,13 @@ function checkin(user_id, db, callback){
 function checkinCallback(error, user_id, previous, current){
   var text = '';
   if(current.status == 1){
-    text = '開始上班囉！ 時間：' + current.checkin_time.toString();
+    text = '開始上班囉！ 時間：' + current.checkin_time.toLocaleString();
   } 
   else{
-    var diff = new Date(current.checkin_time - previous.checkin_time);
+    var diff = calcHourAndMinutes(current.checkin_time - previous.checkin_time);
     console.log(typeof(current), typeof(previous), typeof(diff));
-    text = '哦耶下班了！時間：' + current.checkin_time.toString();
-    text += '\n\n今天工作時間： ' + diff.getHours() + '小時 ' + diff.getMinutes() + '分';
+    text = '哦耶下班了！時間：' + current.checkin_time.toLocaleString();
+    text += '\n\n今天工作時間： ' + diff.hours + '小時 ' + diff.minutes + '分';
   }
   const elements = [{
     title: text,
@@ -409,6 +409,14 @@ function checkinCallback(error, user_id, previous, current){
   }];
 
   sendGenericMessage(user_id, elements);
+}
+
+function calcHourAndMinutes(miliseconds){
+  var secs = Math.round(miliseconds / 1000);
+  var minutes = Math.round(secs / 60);
+  var hours = Math.round(minutes / 60);
+  minutes = minutes - hours * 60; 
+  return { hours: hours, minutes: minutes }
 }
 
 /*
