@@ -394,18 +394,21 @@ function checkinCallback(error, user_id, previous, current){
     text = '哦耶下班了！時間：' + current.checkin_time.toString();
     text += '\n\n今天工作時間： ' + diff.getHours() + '小時 ' + diff.getMinutes() + '分';
   }
+  const elements = [{
+    title: text,
+    //image_url: SERVER_URL + "/assets/rift.png",
+    buttons: [{    
+        type: "postback",
+        title: "微調時間",
+        payload: JSON.stringify({action: "modify_check-in", "checkin_id": current._id}),
+      }, {
+        type: "postback",
+        title: "取消打卡",
+        payload: JSON.stringify({action: "cancel_check-in", "checkin_id": current._id}),
+    }],
+  }];
 
-  const buttons = [{    
-      type: "postback",
-      title: "微調時間",
-      payload: JSON.stringify({action: "modify_check-in", "checkin_id": current._id}),
-    }, {
-      type: "postback",
-      title: "取消打卡",
-      payload: JSON.stringify({action: "cancel_check-in", "checkin_id": current._id}),
-    }];
-
-  sendButtonMessage(user_id, text, buttons);
+  sendGenericMessage(user_id, elements);
 }
 
 /*
