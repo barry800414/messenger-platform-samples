@@ -1,0 +1,111 @@
+
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8">
+    <meta http-eqiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>GoodJob打卡機 | 註冊</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/png" href="/assets/img/common/favicon.ico">
+        <!-- Bootstrap Core CSS -->
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            padding-top: 70px;
+            /* Required padding for .navbar-fixed-top. Remove if using .navbar-static-top. Change if height of navigation changes. */
+        }
+    </style>
+    <link rel="canonical" href="register.html">
+    <meta name="description" content="填寫您的基本資訊以完成註冊">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:title" content="GoodJob打卡機 | 註冊">
+    <meta property="og:description" content="填寫您的基本資訊以完成註冊">
+    <meta property="og:site_name" content="GoodJob打卡機">
+    <meta property="og:image" content="https://worktime.goodjob.life/assets/img/common/og-image_1200-630.png"><!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries --><!-- WARNING: Respond.js doesn't work if you view the page via file:// --><!--[if lt IE 9]><script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script><script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script><![endif]-->
+            <!-- jQuery Version 1.11.1 -->
+    <script src="assets/js/jquery.js"></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="assets/js/bootstrap.min.js"></script>
+
+    <script>
+      //fb messenger sdk
+      var user_id = null;
+      window.extAsyncInit = function() {
+        // the Messenger Extensions JS SDK is done loading
+        MessengerExtensions.getUserID(function success(uids) {
+            user_id = uids.psid;
+            console.log('fb user id is: ' + user_id);
+        }, function error(err) {
+            console.log('Get fb user id failed');
+        });
+      };
+      (function(d, s, id){
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) {return;}
+        js = d.createElement(s); js.id = id;
+        js.src = "//connect.facebook.com/zh_TW/messenger.Extensions.js";
+        fjs.parentNode.insertBefore(js, fjs);
+      }(document, 'script', 'Messenger'));
+
+      $(document).ready(function(){
+        $("#submit").on('click', function(event){
+            console.log("in click");
+            event.preventDefault();
+            $.ajax({
+              url: "/user",
+              method: "POST",
+              data: {
+                company_name: $("#company_name").val(),
+                job_title: $("#job_title").val(),
+                working_time_flexibility: $("input[type='radio'][name='working_time_flexibility']:checked").val(),
+                on_duty_hour: $("#on_duty_hour").val(),
+                on_duty_minute: $("#on_duty_minute").val(),
+                off_duty_hour: $("#off_duty_hour").val(),
+                off_duty_minute: $("#off_duty_minute").val(),
+              },
+              dataType: "json",
+            }).then(function(res){
+                console.log('upload successfully');
+            }).fail(function(jqXHR, textStatus, errorThrown){
+
+            });
+          });
+      });
+
+    </script>
+  </head>
+  <div class="container">
+    <form>
+      <div class="form-group">
+        <label for="exampleInputEmail1">公司/單位 或 統一編號</label>
+        <input type="text" class="form-control" id="company_name" placeholder="ＯＯ股份有限公司">
+      </div>
+      <div class="form-group">
+        <label for="exampleInputPassword1">職稱</label>
+        <input type="text" class="form-control" id="job_title" placeholder="硬體工程師">
+      </div>
+      <div class="radio">
+        <label>
+          <input type="radio" name="working_time_flexibility" value="fixed" checked>
+          平常上班時間較固定
+        </label>
+      </div>
+      <div class="radio">
+        <label>
+          <input type="radio" name="working_time_flexibility" value="flexible">
+            平常上班時間較不固定
+        </label>
+      </div>
+      <div class="form-group">
+        <label for="on_duty_time">平常上班時間:</label>
+        <input type="number" id="on_duty_hour">點 <input type="number" id="on_duty_minute">分
+        <label for="off_duty_time">平常下班時間:</label>
+        <input type="number" id="off_duty_hour">點 <input type="number" id="off_duty_minute">分
+      </div>
+      <button id="submit" type="submit" class="btn btn-default">Submit</button>
+    </form>
+  </div>
+</html>
